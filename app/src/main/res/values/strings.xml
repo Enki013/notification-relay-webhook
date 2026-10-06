@@ -12,4 +12,12 @@
     <string name="local_http_server_notification_channel_desc">Keeps the local HTTP server running.</string>
     <string name="local_http_server_notification_title">Local HTTP server running</string>
     <string name="local_http_server_notification_text">Serving recent notifications on port %1$d</string>
+
+    <!-- Background keep-alive foreground notification -->
+    <string name="keep_alive_notification_channel_name">Background Keep-Alive</string>
+    <string name="keep_alive_notification_channel_desc">Keeps Notification Relay active in background</string>
+    <string name="keep_alive_notification_title">Notification Relay Active</string>
+    <string name="keep_alive_notification_text">Listening and forwarding notifications</string>
+    <string name="settings_keep_alive_title">Keep active in background</string>
+    <string name="settings_keep_alive_desc">Silent foreground service that prevents HyperOS and Android from killing the relay when cleared from recents.</string>
 </resources>

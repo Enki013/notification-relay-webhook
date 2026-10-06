@@ -18,6 +18,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_SELECTED_PACKAGES = "selected_packages"
         private const val KEY_IGNORE_ONGOING = "ignore_ongoing"
         private const val KEY_IGNORE_GROUP_SUMMARY = "ignore_group_summary"
+        private const val KEY_KEEP_ALIVE_ENABLED = "keep_alive_enabled"
         private const val KEY_LOCAL_HTTP_ENABLED = "local_http_enabled"
         private const val KEY_LOCAL_HTTP_PORT = "local_http_port"
         private const val KEY_LOCAL_HTTP_AUTH_ENABLED = "local_http_auth_enabled"
@@ -175,6 +176,10 @@ class PreferencesManager(context: Context) {
         prefs.edit().putString(KEY_LOCAL_HTTP_TOKEN, token).apply()
         return token
     }
+
+    // ── Keep alive / background persistence ──────────────────────────────────
+    fun isKeepAliveEnabled(): Boolean = prefs.getBoolean(KEY_KEEP_ALIVE_ENABLED, true)
+    fun setKeepAliveEnabled(enabled: Boolean) { prefs.edit().putBoolean(KEY_KEEP_ALIVE_ENABLED, enabled).apply() }
 
     // ── Onboarding / version ─────────────────────────────────────────────────
     fun hasSeenOnboarding(): Boolean = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, false)

@@ -50,7 +50,12 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         enableEdgeToEdge()
         preferencesManager = PreferencesManager(this)
-        notificationAccessGranted.value = NotificationAccess.isGranted(this)
+        val accessGranted = NotificationAccess.isGranted(this)
+        notificationAccessGranted.value = accessGranted
+        if (accessGranted) {
+            NotificationAccess.rebindService(this)
+        }
+        RelayKeepAliveService.sync(this)
         maybeRequestPostNotifications()
 
         if (intent?.getBooleanExtra(LocalHttpServerService.EXTRA_OPEN_LOCAL_HTTP, false) == true) {
@@ -74,7 +79,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        notificationAccessGranted.value = NotificationAccess.isGranted(this)
+        val accessGranted = NotificationAccess.isGranted(this)
+        notificationAccessGranted.value = accessGranted
+        if (accessGranted && !NotificationAccess.isConnected()) {
+            NotificationAccess.rebindService(this)
+        }
+        RelayKeepAliveService.sync(this)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {

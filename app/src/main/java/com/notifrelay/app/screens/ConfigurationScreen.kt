@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.BatterySaver
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,11 +25,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.notifrelay.app.BatteryOptimization
 import com.notifrelay.app.ForwardMode
 import com.notifrelay.app.InstalledApp
 import com.notifrelay.app.InstalledAppsProvider
+import com.notifrelay.app.NotificationAccess
+import com.notifrelay.app.NotificationRelayService
 import com.notifrelay.app.PreferencesManager
+import com.notifrelay.app.R
+import com.notifrelay.app.RelayKeepAliveService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -49,6 +56,9 @@ fun ConfigurationScreen(
     var modeMenuExpanded by remember { mutableStateOf(false) }
     var showAppPicker by remember { mutableStateOf(false) }
     var ignoringBatteryOptimizations by remember { mutableStateOf(BatteryOptimization.isIgnoring(context)) }
+    var keepAliveEnabled by remember { mutableStateOf(prefs.isKeepAliveEnabled()) }
+    val isConnected by NotificationRelayService.isConnected.collectAsState()
+    val isXiaomi = remember { BatteryOptimization.isXiaomiDevice() }
 
     LaunchedEffect(Unit) {
         ignoringBatteryOptimizations = BatteryOptimization.isIgnoring(context)
@@ -73,23 +83,41 @@ fun ConfigurationScreen(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    val statusIcon = when {
+                        !notificationAccessGranted -> Icons.Filled.Warning
+                        !isConnected -> Icons.Filled.Warning
+                        else -> Icons.Filled.CheckCircle
+                    }
+                    val statusTint = when {
+                        !notificationAccessGranted -> MaterialTheme.colorScheme.error
+                        !isConnected -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.primary
+                    }
                     Icon(
-                        if (notificationAccessGranted) Icons.Filled.CheckCircle else Icons.Filled.Warning,
+                        statusIcon,
                         contentDescription = null,
-                        tint = if (notificationAccessGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        tint = statusTint
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (notificationAccessGranted) "Notification access granted" else "Notification access needed",
+                        when {
+                            !notificationAccessGranted -> "Notification access needed"
+                            !isConnected -> "Listener disconnected"
+                            else -> "Notification access granted"
+                        },
                         style = MaterialTheme.typography.titleSmall
                     )
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    if (notificationAccessGranted)
-                        "Captured notifications are forwarded to your enabled webhooks."
-                    else
-                        "Grant notification access so the app can read and forward incoming notifications.",
+                    when {
+                        !notificationAccessGranted ->
+                            "Grant notification access so the app can read and forward incoming notifications."
+                        !isConnected ->
+                            "Permission granted, but listener service is not connected (common on HyperOS after app restart). Tap 'Reconnect Listener' below."
+                        else ->
+                            "Captured notifications are forwarded to your enabled webhooks."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -101,6 +129,17 @@ fun ConfigurationScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Grant notification access")
+                    }
+                } else if (!isConnected) {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { NotificationAccess.rebindService(context) },
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Reconnect Listener")
                     }
                 }
             }
@@ -141,6 +180,74 @@ fun ConfigurationScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Open battery settings")
+                    }
+                }
+            }
+        }
+
+        // Keep active in background (Foreground Service)
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.settings_keep_alive_title),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(R.string.settings_keep_alive_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Switch(
+                        checked = keepAliveEnabled,
+                        onCheckedChange = { enabled ->
+                            keepAliveEnabled = enabled
+                            prefs.setKeepAliveEnabled(enabled)
+                            RelayKeepAliveService.sync(context)
+                        }
+                    )
+                }
+            }
+        }
+
+        if (isXiaomi) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Xiaomi / HyperOS Settings",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "HyperOS restricts background services. With 'Keep active in background' enabled, you do NOT need to lock the app in recent apps:\n" +
+                                "1. Enable 'Auto-start'\n" +
+                                "2. Set Battery saver to 'No restrictions'",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { BatteryOptimization.openXiaomiAutoStart(context) },
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Open Auto-start / App settings")
                     }
                 }
             }

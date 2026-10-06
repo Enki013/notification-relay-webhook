@@ -51,7 +51,7 @@
         <!-- Captures incoming notifications -->
         <service
             android:name=".NotificationRelayService"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
@@ -62,6 +62,13 @@
         <!-- Optional local HTTP server exposing recent notifications on the LAN -->
         <service
             android:name=".LocalHttpServerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Foreground keep-alive service to survive background killing on HyperOS / OEM ROMs -->
+        <service
+            android:name=".RelayKeepAliveService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
