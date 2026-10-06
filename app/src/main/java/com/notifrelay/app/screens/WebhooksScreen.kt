@@ -10,7 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -65,39 +64,46 @@ fun WebhooksScreen() {
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                WebhookPanel(
-                    configs = configs,
-                    newUrl = newUrl,
-                    onNewUrlChange = { newUrl = it },
-                    onAdd = {
-                        showAdd = true
-                    },
-                    onToggle = { index, enabled ->
-                        val config = configs[index]
-                        persist(configs.toMutableList().also { it[index] = config.copy(isEnabled = enabled) })
-                    },
-                    onTest = { sendTest(it) },
-                    onEdit = { editingIndex = it },
-                    onDelete = { index ->
-                        persist(configs.toMutableList().also { it.removeAt(index) })
-                    }
-                )
-                Spacer(Modifier.height(72.dp))
-            }
+            Text(
+                "Webhooks",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            WebhookPanel(
+                configs = configs,
+                newUrl = newUrl,
+                onNewUrlChange = { newUrl = it },
+                onAdd = {
+                    showAdd = true
+                },
+                onToggle = { index, enabled ->
+                    val config = configs[index]
+                    persist(configs.toMutableList().also { it[index] = config.copy(isEnabled = enabled) })
+                },
+                onTest = { sendTest(it) },
+                onEdit = { editingIndex = it },
+                onDelete = { index ->
+                    persist(configs.toMutableList().also { it.removeAt(index) })
+                }
+            )
+            Spacer(Modifier.height(16.dp))
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        )
     }
 
     if (showAdd) {

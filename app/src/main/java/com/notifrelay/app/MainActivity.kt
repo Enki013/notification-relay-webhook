@@ -126,53 +126,54 @@ class MainActivity : AppCompatActivity() {
         }
 
         val accessGranted by notificationAccessGranted
+        val saveableStateHolder = rememberSaveableStateHolder()
 
-        Scaffold(
-            bottomBar = {
-                if (!showLocalHttpSettings && !showSettingsBackup && !showRecent) {
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
-                        bottomNavItems.forEach { screen ->
-                            NavigationBarItem(
-                                icon = { Icon(screen.icon, contentDescription = stringResource(screen.titleResId)) },
-                                label = { Text(stringResource(screen.titleResId)) },
-                                selected = selectedScreen == screen,
-                                onClick = { selectedScreen = screen }
-                            )
+        BackHandler {
+            when {
+                showLocalHttpSettings -> showLocalHttpSettings = false
+                showSettingsBackup -> showSettingsBackup = false
+                showRecent -> showRecent = false
+                selectedScreen != NavigationScreen.Home -> selectedScreen = NavigationScreen.Home
+                else -> finish()
+            }
+        }
+
+        when {
+            showLocalHttpSettings -> LocalHttpSettingsScreen(onBack = { showLocalHttpSettings = false })
+            showSettingsBackup -> SettingsBackupScreen(onBack = { showSettingsBackup = false })
+            showRecent -> RecentNotificationsScreen(onBack = { showRecent = false })
+            else -> {
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
+                            bottomNavItems.forEach { screen ->
+                                NavigationBarItem(
+                                    icon = { Icon(screen.icon, contentDescription = stringResource(screen.titleResId)) },
+                                    label = { Text(stringResource(screen.titleResId)) },
+                                    selected = selectedScreen == screen,
+                                    onClick = { selectedScreen = screen }
+                                )
+                            }
                         }
                     }
-                }
-            }
-        ) { padding ->
-            BackHandler {
-                when {
-                    showLocalHttpSettings -> showLocalHttpSettings = false
-                    showSettingsBackup -> showSettingsBackup = false
-                    showRecent -> showRecent = false
-                    selectedScreen != NavigationScreen.Home -> selectedScreen = NavigationScreen.Home
-                    else -> finish()
-                }
-            }
-            val saveableStateHolder = rememberSaveableStateHolder()
-            Box(modifier = Modifier.padding(padding)) {
-                when {
-                    showLocalHttpSettings -> LocalHttpSettingsScreen(onBack = { showLocalHttpSettings = false })
-                    showSettingsBackup -> SettingsBackupScreen(onBack = { showSettingsBackup = false })
-                    showRecent -> RecentNotificationsScreen(onBack = { showRecent = false })
-                    else -> saveableStateHolder.SaveableStateProvider(selectedScreen.route) {
-                        when (selectedScreen) {
-                            is NavigationScreen.Home -> ConfigurationScreen(
-                                notificationAccessGranted = accessGranted,
-                                onGrantNotificationAccess = { NotificationAccess.openSettings(this@MainActivity) },
-                                onOpenRecent = { showRecent = true },
-                                onOpenLocalHttpSettings = { showLocalHttpSettings = true }
-                            )
-                            is NavigationScreen.Webhooks -> WebhooksScreen()
-                            is NavigationScreen.Logs -> LogsScreen()
-                            is NavigationScreen.About -> AboutScreen(
-                                onRestartOnboarding = onRestartOnboarding,
-                                onOpenLocalHttpSettings = { showLocalHttpSettings = true },
-                                onOpenSettingsBackup = { showSettingsBackup = true }
-                            )
+                ) { padding ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        saveableStateHolder.SaveableStateProvider(selectedScreen.route) {
+                            when (selectedScreen) {
+                                is NavigationScreen.Home -> ConfigurationScreen(
+                                    notificationAccessGranted = accessGranted,
+                                    onGrantNotificationAccess = { NotificationAccess.openSettings(this@MainActivity) },
+                                    onOpenRecent = { showRecent = true },
+                                    onOpenLocalHttpSettings = { showLocalHttpSettings = true }
+                                )
+                                is NavigationScreen.Webhooks -> WebhooksScreen()
+                                is NavigationScreen.Logs -> LogsScreen()
+                                is NavigationScreen.About -> AboutScreen(
+                                    onRestartOnboarding = onRestartOnboarding,
+                                    onOpenLocalHttpSettings = { showLocalHttpSettings = true },
+                                    onOpenSettingsBackup = { showSettingsBackup = true }
+                                )
+                            }
                         }
                     }
                 }
